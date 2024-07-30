@@ -1,6 +1,7 @@
 from ai71 import AI71 
+import os
 
-AI71_API_KEY = "api71-api-6dd3d588-9263-42e2-998c-1f21c54ffc0c"
+AI71_API_KEY = os.getenv("AI71_API_KEY")
 async def llm_call(prompt):
     response_chunks = []
     for chunk in AI71(AI71_API_KEY).chat.completions.create(

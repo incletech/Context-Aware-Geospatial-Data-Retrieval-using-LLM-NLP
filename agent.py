@@ -2,7 +2,7 @@ from prompt import *
 from llm import *
 from functions import *
 import geocoder
-import json
+import json, os
 async def bot(prompt):
     input = "human input : " + prompt
     content= [{"role": "user", "content": input}]

@@ -1,8 +1,8 @@
-import serpapi
+import serpapi, os
 
 def search(query,location):
     params = {
-    "api_key": "3d48ec1b34dc9984498616e0c96660c30acc92441d257a575f70e5fa86cde75e",
+    "api_key": os.getenv("serph_api"),
     "engine": "google_maps",
     "type": "search",
     "google_domain": "google.com",
@@ -10,7 +10,7 @@ def search(query,location):
     "ll": location,
     "hl": "en"
     }
-    client = serpapi.Client(api_key="3d48ec1b34dc9984498616e0c96660c30acc92441d257a575f70e5fa86cde75e")
+    client = serpapi.Client(api_key=os.getenv("serph_api"))
     search = client.search(params)
     results = search.as_dict()
     title_list=[]
