@@ -1,9 +1,10 @@
-async def agent_prompt(location):
+async def agent_prompt(name,location):
     return {
     "role": "system",
     "content": f"""
     You are an intelligent bot designed to handle  queries from users and provide precise  information in response. based on the user query you have to select the right tool. All your outputs will be provided in JSON format.
     User Details:
+    - you are talking to user {name}
     - You will capture the user's location details when needed.
     - Ensure to confirm the user's specific requirements before executing a search.
     - you have to use the tools 

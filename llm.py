@@ -1,73 +1,73 @@
 from ai71 import AI71 
 import os
+from typing import List, Optional, Dict, Any
+from dotenv import load_dotenv
 
-AI71_API_KEY = os.getenv("AI71_API_KEY")
-async def llm_call(prompt):
-    response_chunks = []
-    for chunk in AI71(AI71_API_KEY).chat.completions.create(
-        model="tiiuae/falcon-180b-chat",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"{prompt}"},
-        ],
-        stream=True,
-    ):
-        if chunk.choices[0].delta.content:
-            response_chunks.append(chunk.choices[0].delta.content)
-            # print(chunk.choices[0].delta.content, sep="", end="", flush=True)
-    
-    # Combine all chunks to form the complete response
-    response = ''.join(response_chunks)
-    return response  
+load_dotenv()
 
-async def llm_response(prompt):
-    response_chunks = []
-    for chunk in AI71(AI71_API_KEY).chat.completions.create(
-        model="tiiuae/falcon-180b-chat",
-        messages=[
-            {"role": "system", "content": "You are an assistant tasked with generating and rephrasing data for humans. should have greeting message .When given a piece of data, provide a rephrased version that is clear, concise, and human-readable.Ensure that the city is extracted from the address and used appropriately. you should not mention it is rephrased content"},
-            {"role": "user", "content": f"{prompt}"},
-        ],
-        stream=True,
-    ):
-        if chunk.choices[0].delta.content:
-            response_chunks.append(chunk.choices[0].delta.content)
-            # print(chunk.choices[0].delta.content, sep="", end="", flush=True)
-    
-    # Combine all chunks to form the complete response
-    response = ''.join(response_chunks)
-    return response  
-       
-    
-async def llm_call_function_call(  tool: list[dict], messages: list[dict], temperature: float=1, max_tokens: int=2408):
-    try:
-        for chunk in AI71(AI71_API_KEY).chat.completions.create(
-            model="tiiuae/falcon-180b-chat",
-            temperature=temperature,
-            max_tokens=max_tokens,
-            messages=messages,
-            tools=tool,
-            tool_choice="auto",
-         ):
-        
-            if chunk.choices[0].delta.content:
-                response = chunk.choices[0].delta.content
-                print(chunk.choices[0].delta.content, sep="", end="", flush=True)
+class ClientInitializerLlm:
+    def __init__(self):
+        self.clients = {
+            'ai71': self.init_ai71_client() 
+        }
 
-        return response
+    def init_ai71_client(self):
+        return AI71(
+            api_key=os.getenv("AI71_API_KEY")
+        )
 
-    except Exception as e:
-        if hasattr(e, 'status'):
-            if e.status == 400:
-                return {
-                    "response": "Your prompt violates our content policy, please open a new conversation",
-                    "implicit_output": None,
-                    "response_type": None,
-                }
-            elif e.status == 500:
-                return {
-                    "response": "An unexpected error occurred, please try again later",
-                    "implicit_output": None,
-                    "response_type": None,
-                }
-        return {"error": f"An unexpected error occurred: {str(e)}"}
+    def get_client(self, client_name: str):
+        return self.clients.get(client_name)
+
+class LlmModel:
+    def __init__(self, client, model: str, temperature: float, max_tokens: int):
+        self.client = client
+        self.model = model
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+
+    @staticmethod
+    def from_config(client_name: str, model: str, temperature: float, max_tokens: int):
+        initializer = ClientInitializerLlm()
+        client = initializer.get_client(client_name)
+        if not client:
+            raise ValueError(f"Client '{client_name}' not found.")
+        return LlmModel(client, model, temperature, max_tokens)
+
+    def _create_completion(self, messages: List[Dict[str, Any]], response_format: Optional[Dict[str, str]] = None, tools: Optional[List[Any]] = None):
+        try:
+            params = {
+                "model": self.model,
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+                "messages": messages
+            }
+            if response_format:
+                params["response_format"] = response_format
+            if tools:
+                params["tools"] = tools
+                params["tool_choice"] = "auto"
+                
+            response = self.client.chat.completions.create(**params)
+            return response
+        except Exception as e:
+            raise RuntimeError(f"Failed to create completion: {e}")
+
+    def text_completion(self, messages: List[Dict[str, Any]]):
+        return self._create_completion(messages)
+
+    def json_completion(self, messages: List[Dict[str, Any]]):
+        response_format = {"type": "json_object"}
+        return self._create_completion(messages = messages,response_format= response_format)
+
+    def function_calling(self, messages: List[Dict[str, Any]], tools: List[Any]):
+        return self._create_completion(messages = messages, tools=tools)
+
+
+completion = LlmModel.from_config("ai71", "tiiuae/falcon-180B-chat", 1, 1000)
+msg = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "how are you"},
+    ]
+text = completion.text_completion(msg)
+print(text)
