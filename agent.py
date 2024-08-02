@@ -6,7 +6,12 @@ import json, os
 from location import GeocodingClient, find_location
 from datetime import datetime
 import pytz
+from pymongo import MongoClient
+from database import *
 
+mongo_client = MongoClient(os.getenv("mongo_db_connection_string"))
+db = mongo_client["incle"]
+conversation_history = db["falcon_conversation_history"]
 
 india_tz = pytz.timezone('Asia/Kolkata')
 current_time_india = datetime.now(india_tz)
@@ -17,10 +22,13 @@ falcon_completion = LlmModel.from_config("ai71", "tiiuae/falcon-180B-chat", 1, 8
 llama_70b_tool_calling_completion = LlmModel.from_config("groq", "llama3-groq-70b-8192-tool-use-preview", 1, 8192)
 llama_31_70b_completion = LlmModel.from_config("groq", "llama-3.1-70b-versatile", 0, 4000)
 
-def agent(prompt, user_name,conversation_id ,latitude, longitude):
+def agent(prompt, user_name ,latitude, longitude):
     city, state = find_location(latitude, longitude)
     weather = "rainy"
     system_message = agent_prompt(user_name, city, state, weather, time)
+
+
+    #history =get_history_from_worker(conversation_history,conversation_id)
     messages = [system_message] + [{"role": "user", "content": prompt}]
     intent, map_url = None, None
     while True:
@@ -67,13 +75,15 @@ def agent(prompt, user_name,conversation_id ,latitude, longitude):
                     web_search = search(inputs)
                     messages.append({"role": "user", "content":f"Observation :/n{web_search}"})
         else:
+            #insert_conversations(conversation_history, prompt, response_message.content, conversation_id, latitude, longitude, time, map_url, intent)
             return {
                 "completion" : response_message.content,
-                "conversation_id" : conversation_id,
+                #"conversation_id" : conversation_id,
                 "intent" : intent,
                 "map_url" : map_url
             }
                                 
     
-x = agent("what is a distance between my location to kanyakumari","12e13434", "gokul", 11.7910866,77.778496)
+x = agent("what is a distance between madurai to chennai", "gokul", 11.7910866,77.778496)
 print(x)
+print(x["completion"])
