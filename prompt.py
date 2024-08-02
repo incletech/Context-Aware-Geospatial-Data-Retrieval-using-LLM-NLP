@@ -1,125 +1,197 @@
-async def agent_prompt(name,location):
+def agent_prompt(name, city, state, weather, time):
     return {
-    "role": "system",
-    "content": f"""
-    You are an intelligent bot designed to handle  queries from users and provide precise  information in response. based on the user query you have to select the right tool. All your outputs will be provided in JSON format.
-    User Details:
-    - you are talking to user {name}
-    - You will capture the user's location details when needed.
-    - Ensure to confirm the user's specific requirements before executing a search.
-    - you have to use the tools 
-
-    Available Tools:
-    1. **location_nearby_search**
-        - **Description:** Use this tool to find nearby locations {location}such as coffee shops, dress shops, bus stands, etc.
-        - **Parameters:**
-            - **place_type:** The type of place the user is looking for (e.g., coffee shop, dress shop, bus stand).
-            - **radius:** The search radius in meters (default is 5000 meters).
-
-    2. **location_search**
-        - **Description:** Use this tool to search for specific locations such as cities or landmarks (e.g., Chennai, Bangalore).
-        - **Parameters:**
-            - **location_name:** The name of the location the user wants to search for.
-
-    3. **crop_data_search**
-        - **Description:** Use this tool to search for crop or vegetation-related data (e.g., best apple gardens, rice bowl of India, largest wheat-yielding state).
-        - **Parameters:**
-            - **crop_query:** The specific crop or vegetation-related query the user has.
-
-    4. **service_nearby_search**
-        - **Description:** Use this tool to find nearby services such as electrical services, plumbing, etc.
-        - **Parameters:**
-            - **service_type:** The type of service the user is looking for (e.g., electrical service, plumbing).
-            - **radius:** The search radius in meters (default is 5000 meters).
-
-    General Interaction Rules:
-    - Ensure all user queries are clearly understood and confirmed before executing any search.
-    - Provide accurate and concise information in response to user queries.
-    - Maintain a friendly and professional tone at all times.
-    - If a tool requires specific details from the user, always ask for those details explicitly before using the tool.
-
-    Your role is to facilitate a seamless interaction, ensuring user satisfaction and timely resolution of their queries by efficiently utilizing the provided tools.
-    """
+        "role": "system",
+        "content": f"""
+        You are an intelligent bot designed to handle user queries and provide precise information. Select the appropriate tool for each query. You are responsible for identifying and solving user queries and reporting to the human with the help of given tools.
+        
+        You are speaking with {name} in {city}, {state}. The current weather is {weather}, and the time is {time}. Greet the user with a comment on the current weather using an emoji.
+        
+        Available Tools(choose the tool by own don't ask this to user):
+        
+        - location_nearby_search: Search for nearby places (e.g., coffee shops).
+        - location_search: Search for specific locations by name.
+        - service_nearby_search: Find nearby services (e.g., plumbing).
+        - weather_search: Get current weather information for a location.
+        - local_events_search: Find events in a specified area.
+        - flight_search: Find flights between two locations.
+        - direction_search: Get directions between two places.
+        - web_search: Fetch current events or updates.
+        - news_search: Search for news updates.
+        
+        After selecting a tool, you will receive observations from the tool and provide a response to the user.
+        
+        Choose the tools automatically to solve the user's query. Your role is to facilitate a seamless interaction, ensuring user satisfaction and timely resolution of their queries by efficiently utilizing the provided tools and consulting the manager when necessary. Respond promptly to any tasks or input requests from the manager to ensure smooth operations.
+        """
     }
 
-
-tools=[
+tools = [
     {
-    "type": "function",
-    "function": {
-    "name": "location_nearby_search",
-    "description": "Search for nearby locations of a specified type.",
-    "parameters": {
-    "type": "object",
-    "properties": {
-        "place_type": {
-        "type": "string",
-        "description": "The type of place the user is looking for (e.g., coffee shop, dress shop, bus stand)."
-        },
-        "radius": {
-        "type": "integer",
-        "description": "The search radius in meters.",
-        "default": 5000
+        "type": "function",
+        "function": {
+            "name": "location_nearby_search",
+            "description": "Search for nearby places of a specified type.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "place_type": {
+                        "type": "string",
+                        "description": "Type of place (e.g., coffee shop, bus stop)."
+                    }
+                },
+                "required": ["place_type"]
+            }
         }
     },
-    "required": ["place_type"]
-    }
-    }
-},
-{
-    "type": "function",
-    "function": {
-    "name": "location_search",
-    "description": "Search for specific locations such as cities or landmarks.",
-    "parameters": {
-    "type": "object",
-    "properties": {
-        "location_name": {
-        "type": "string",
-        "description": "The name of the location the user wants to search for."
+    {
+        "type": "function",
+        "function": {
+            "name": "location_search",
+            "description": "Search for specific locations by name.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location_name": {
+                        "type": "string",
+                        "description": "Name of the location."
+                    }
+                },
+                "required": ["location_name"]
+            }
         }
     },
-    "required": ["location_name"]
-    }
-    }
-},
-{
-    "type": "function",
-    "function": {
-    "name": "crop_data_search",
-    "description": "Search for crop or vegetation-related data.",
-    "parameters": {
-    "type": "object",
-    "properties": {
-        "crop_query": {
-        "type": "string",
-        "description": "The specific crop or vegetation-related query the user has."
+    {
+        "type": "function",
+        "function": {
+            "name": "service_nearby_search",
+            "description": "Search for nearby services of a specified type.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "service_type": {
+                        "type": "string",
+                        "description": "Type of service (e.g., plumbing)."
+                    }
+                },
+                "required": ["service_type"]
+            }
         }
     },
-    "required": ["crop_query"]
-    }
-    }
-},
-{
-    "type": "function",
-    "function": {
-    "name": "service_nearby_search",
-    "description": "Search for nearby services such as electrical services, plumbing, etc.",
-    "parameters": {
-    "type": "object",
-    "properties": {
-        "service_type": {
-        "type": "string",
-        "description": "The type of service the user is looking for (e.g., electrical service, plumbing)."
-        },
-        "radius": {
-        "type": "integer",
-        "description": "The search radius in meters.",
-        "default": 5000
+    {
+        "type": "function",
+        "function": {
+            "name": "weather_search",
+            "description": "Get current weather information for a location.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location_name": {
+                        "type": "string",
+                        "description": "Name of the location."
+                    }
+                },
+                "required": ["location_name"]
+            }
         }
     },
-    "required": ["service_type"]
+    {
+        "type": "function",
+        "function": {
+            "name": "local_events_search",
+            "description": "Find local events in a specified location.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location_name": {
+                        "type": "string",
+                        "description": "Name of the location."
+                    }
+                },
+                "required": ["location_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "flight_search",
+            "description": "Search for flights between two locations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "departure_location": {
+                        "type": "string",
+                        "description": "Departure location."
+                    },
+                    "arrival_location": {
+                        "type": "string",
+                        "description": "Arrival location."
+                    },
+                    "departure_date": {
+                        "type": "string",
+                        "description": "Date of departure."
+                    },
+                    "return_date": {
+                        "type": "string",
+                        "description": "Date of return (optional)."
+                    }
+                },
+                "required": ["departure_location", "arrival_location", "departure_date"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "direction_search",
+            "description": "Get directions between two places.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "start_location": {
+                        "type": "string",
+                        "description": "Starting location will be alway default to user location."
+                    },
+                    "end_location": {
+                        "type": "string",
+                        "description": "Ending location."
+                    }
+                },
+                "required": ["start_location", "end_location"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Fetch current events or updates.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "User query."
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "news_search",
+            "description": "Search for news on a specified topic.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "News search query."
+                    }
+                },
+                "required": ["query"]
+            }
+        }
     }
-    }
-}
 ]

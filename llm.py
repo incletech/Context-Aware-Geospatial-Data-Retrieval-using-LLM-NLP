@@ -2,20 +2,24 @@ from ai71 import AI71
 import os
 from typing import List, Optional, Dict, Any
 from dotenv import load_dotenv
-
+from groq import Groq
 load_dotenv()
 
 class ClientInitializerLlm:
     def __init__(self):
         self.clients = {
-            'ai71': self.init_ai71_client() 
+            'ai71': self.init_ai71_client(),
+            'groq':self.init_groq_client()
         }
 
     def init_ai71_client(self):
         return AI71(
             api_key=os.getenv("AI71_API_KEY")
         )
-
+    def init_groq_client(self):
+        return Groq(
+            api_key=os.getenv("groq_api")
+        )
     def get_client(self, client_name: str):
         return self.clients.get(client_name)
 
@@ -47,7 +51,6 @@ class LlmModel:
             if tools:
                 params["tools"] = tools
                 params["tool_choice"] = "auto"
-                
             response = self.client.chat.completions.create(**params)
             return response
         except Exception as e:
@@ -60,14 +63,5 @@ class LlmModel:
         response_format = {"type": "json_object"}
         return self._create_completion(messages = messages,response_format= response_format)
 
-    def function_calling(self, messages: List[Dict[str, Any]], tools: List[Any]):
+    def function_calling(self, messages: List[Dict[str, Any]], tools):
         return self._create_completion(messages = messages, tools=tools)
-
-
-completion = LlmModel.from_config("ai71", "tiiuae/falcon-180B-chat", 1, 1000)
-msg = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "how are you"},
-    ]
-text = completion.text_completion(msg)
-print(text)

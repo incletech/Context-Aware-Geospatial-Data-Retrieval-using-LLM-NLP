@@ -1,5 +1,8 @@
 import os
 import requests
+from opencage.geocoder import OpenCageGeocode
+
+geocoder = OpenCageGeocode(os.getenv("OpenCage"))
 
 class GeocodingClient:
     def __init__(self, api_key=None, request_id=None):
@@ -38,7 +41,7 @@ class GeocodingClient:
 
     def _extract_address(self, data):
         if 'results' in data and len(data['results']) > 0:
-            return data['results'][0]['formatted_address']
+            return data['results'][0]['formatted_address'], data['results'][0]['name']
         return 'No address found in the response.'
 
     def _extract_location(self, data):
@@ -55,3 +58,31 @@ class GeocodingClient:
             print(f'Formatted Address: {formatted_address}')
             print(f'Location: Latitude = {latitude}, Longitude = {longitude}')
             print('-' * 40)
+
+import googlemaps
+
+api_key = os.getenv("google_map")
+url = "https://maps.googleapis.com/maps/api/geocode/json"
+gmaps = googlemaps.Client(key=api_key)
+
+
+def find_location(latitude, longitude):
+    if (latitude is None or longitude is None or 
+        not -90 <= latitude <= 90 or 
+        not -180 <= longitude <= 180 or 
+        (latitude == 0 and longitude == 0)):
+        return "unknown", "unknown"  
+
+    reverse_geocode_result = gmaps.reverse_geocode((latitude, longitude))
+    if reverse_geocode_result:
+        result = reverse_geocode_result[0]  
+        city = "unknown"
+        admin_area = "unknown"
+        for component in result["address_components"]:
+            if "locality" in component["types"]:
+                city = component["long_name"]
+            elif "administrative_area_level_1" in component["types"]:
+                admin_area = component["long_name"]
+        return city, admin_area
+    else:
+        return "unknown", "unknown"
