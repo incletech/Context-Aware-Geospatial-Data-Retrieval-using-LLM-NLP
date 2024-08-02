@@ -43,7 +43,9 @@ def agent(prompt, history, user_name ,latitude, longitude):
                 print("\n\n")
                 if function_name == "location_nearby_search":
                     intent = "location_nearby_search"
-                    pass
+                    query,location=function_args.get("service_type"),function_args.get("location_name")
+                    summary= local_search(query,location)
+                    messages.append({"role": "user", "content":f"Observation :/n{summary}"})
                 elif function_name == "direction_search":
                     intent = "direction_search"
                     start, end = function_args.get("start_location"),  function_args.get("end_location")
@@ -52,22 +54,38 @@ def agent(prompt, history, user_name ,latitude, longitude):
                     messages.append({"role": "user", "content":f"Observation :/n{summary}"})
                 elif function_name == "location_search":
                     intent = "location_search"
-                    pass
+                    inputs = function_args.get("location_name")
+                    web_search = search(inputs)
+                    messages.append({"role": "user", "content":f"Observation :/n{web_search}"})
                 elif function_name == "service_nearby_search":
+                    print("service")
                     intent = "service_nearby_search"
-                    pass
+                    query,location=function_args.get("service_type"),function_args.get("location_name")
+                    print("In")
+                    summary= local_search(query,location)
+                    print("fun")
+                    messages.append({"role": "user", "content":f"Observation :/n{summary}"})
                 elif function_name == "weather_search":
                     intent = "weather_search"
-                    pass
+                    inputs=function_args.get("location_name")
+                    weather_result = weather_search(inputs)
+                    messages.append({"role": "user", "content":f"Observation :/n{weather_result}"})
+                    weather
                 elif function_name == "local_events_search":
                     intent = "local_events_search"
-                    pass
+                    inputs=function_args.get("location_name")
+                    local_events_search = local_event(inputs)
+                    messages.append({"role": "user", "content":f"Observation :/n{local_events_search}"})
                 elif function_name == "flight_search":
                     intent = "flight_search"
-                    pass
+                    departure_location,arrival_location,departure_date,return_date=function_args.get("departure_location"),function_args.get("arrival_location"),function_args.get("departure_date"),function_args.get("return_date")
+                    flight_search = flights(departure_location,arrival_location,departure_date,return_date)
+                    messages.append({"role": "user", "content":f"Observation :/n{flight_search}"})
                 elif function_name == "local_news_search":
                     intent = "local_news_search"
-                    pass
+                    inputs=function_args.get("query")
+                    local_news_search = news_search(inputs)
+                    messages.append({"role": "user", "content":f"Observation :/n{local_news_search}"})
                 elif function_name == "web_search":
                     intent = "web_search"
                     inputs = function_args.get("query")

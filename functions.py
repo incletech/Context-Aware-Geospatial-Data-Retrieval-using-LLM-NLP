@@ -1,5 +1,6 @@
 from googleapiclient.discovery import build
 import os
+from opencage.geocoder import OpenCageGeocode
 
 def search(search_term):
     search_result = ""
@@ -77,3 +78,161 @@ def direction_tool(start_location, end_location):
                 summary += f"Duration: {direction.get('formatted_duration', 'N/A')}"
 
     return summary, google_map_direction_url
+
+
+def news_search(topic):
+    params = {
+    "api_key": os.environ.get("serph_api"),
+    "engine": "bing_news",
+    "q": topic
+    }
+
+    client = serpapi.Client(api_key=os.environ.get("serph_api"))
+    search = client.search(params)
+    results = search.as_dict()
+    final=results["organic_results"][0]
+    news=f"""
+    news content
+    """
+    for i in range(len(results["organic_results"])):
+        final=results["organic_results"][i]
+        print("Title:",final["title"])
+        print("Source:",final["source"])
+        print("Link:",final["link"])
+        print("Date:",final["date"])
+        news+=f"""\nTitle:{final["title"]},\nSource:{final["source"]},\nLink:{final["link"]},\nDate:{final["date"]}\n"""
+
+    return news
+def local_event(location):
+    params = {
+    "api_key": os.environ.get("serph_api"),
+    "engine": "google_events",
+    "q": f"Events in {location}"
+    }
+
+    client = serpapi.Client(api_key=os.environ.get("serph_api"))
+    search = client.search(params)
+    results = search.as_dict()
+    # print(results["events_results"][0:5])
+    events=f"""
+    local events
+    """
+    for i in range(0,5):
+        event = results["events_results"][i]  # Assuming you want to extract the first event
+        title = event['title']
+        date_time = event['date']['when']
+        address = ', '.join(event['address'])
+        ticket_link = event['link']
+        map_link = event['event_location_map']['link']
+        # Print the result
+        print(f"Title: {title}")
+        print(f"Date and Time: {date_time}")
+        print(f"Address: {address}")
+        print(f"Ticket Link: {ticket_link}")
+        print(f"Map: {map_link}")
+        events+=f"""\nTitle:{title},\nDate and Time:{date_time},\nAddress:{address},\nTicket Link: {ticket_link},\nMap:{map_link}\n"""
+
+    return events
+def weather_search(location):   
+    params = {
+    "api_key": os.environ.get("serph_api"),
+    "engine": "google",
+    "q": "weather",
+    "location": location,
+    "google_domain": "google.com",
+    "gl": "us",
+    "hl": "en"
+    }
+
+    client = serpapi.Client(api_key=os.environ.get("serph_api"))
+    search = client.search(params)
+    results = search.as_dict()
+    print(results)
+    weather_details = {
+        "temperature": results["answer_box"]["temperature"],
+        "unit": results["answer_box"]["unit"],
+        "precipitation": results["answer_box"]["precipitation"],
+        "humidity": results["answer_box"]["humidity"],
+        "wind": results["answer_box"]["wind"],
+        "location": results["answer_box"]["location"],
+        "date": results["answer_box"]["date"],
+        "weather": results["answer_box"]["weather"]
+    }
+    print(weather_details)
+    weather_report=f"""{weather_details}"""
+    return weather_report
+
+def flights(depature,arrival,outbound_date,return_date):
+    params = {
+    "api_key": os.environ.get("serph_api"),
+    "engine": "google_flights",
+    "hl": "en",
+    "gl": "in",
+    "departure_id":depature,
+    "arrival_id": arrival,
+    "outbound_date": outbound_date,
+    "return_date": return_date,
+    "currency": "INR"
+    }
+    client = serpapi.Client(api_key=os.environ.get("serph_api"))
+    search = client.search(params)
+    results = search.as_dict()
+    summary=f"""
+    flights
+    """
+    for flight in results.get('best_flights', []):
+        summary += f"""
+    Airline: {flight['flights'][0].get('airline', 'N/A')}
+    Flight Number: {flight['flights'][0].get('flight_number', 'N/A')}
+    Departure Airport: {flight['flights'][0]['departure_airport'].get('name', 'N/A')} ({flight['flights'][0]['departure_airport'].get('id', 'N/A')})
+    Departure Time: {flight['flights'][0]['departure_airport'].get('time', 'N/A')}
+    Arrival Airport: {flight['flights'][0]['arrival_airport'].get('name', 'N/A')} ({flight['flights'][0]['arrival_airport'].get('id', 'N/A')})
+    Arrival Time: {flight['flights'][0]['arrival_airport'].get('time', 'N/A')}
+    Duration: {flight['flights'][0].get('duration', 'N/A')} minutes
+    Airplane: {flight['flights'][0].get('airplane', 'N/A')}
+    Layover:
+        Airport: {flight['layovers'][0].get('name', 'N/A')} ({flight['layovers'][0].get('id', 'N/A')})
+        Duration: {flight['layovers'][0].get('duration', 'N/A')} minutes
+
+    Total Duration: {flight.get('total_duration', 'N/A')} minutes
+    Carbon Emissions: {flight['carbon_emissions'].get('this_flight', 'N/A')} kg (difference: {flight['carbon_emissions'].get('difference_percent', 'N/A')}% compared to typical)
+    Price: ${flight.get('price', 'N/A')}
+    """
+
+    return summary
+
+def local_search(query,location):
+    print(os.environ.get("serph_api"))
+    params = {
+    "api_key": "a006c3a18cff16fef629ae9aa70bd96b7f0d9ef3902eb36b5d89acc3150ebede",
+    "engine": "google_maps",
+    "type": "search",
+    "google_domain": "google.com",
+    "q": query,
+    "ll": location,
+    "hl": "en"
+    }
+
+    client = serpapi.Client(api_key="a006c3a18cff16fef629ae9aa70bd96b7f0d9ef3902eb36b5d89acc3150ebede")
+    search = client.search(params)
+    results = search.as_dict()
+    # print(results)
+    summary=f"""
+    local results
+    """
+    for place in results.get('local_results', []):
+        key = '20f128ccdc234786bb5eb9f12f8f036f'
+        geocoder = OpenCageGeocode(key)
+        results = geocoder.reverse_geocode(place['gps_coordinates'].get('latitude'),place['gps_coordinates'].get('longitude'))
+        summary += f"""
+    Title: {place.get('title', 'N/A')}
+    Rating: {place.get('rating', 'N/A')}
+    Address: {place.get('address', 'N/A')}
+    Open State: {place.get('open_state', 'N/A')}
+    Hours: {place.get('hours', 'N/A')}
+    Operating Hours: {place.get('operating_hours', 'N/A')}
+    Phone: {place.get('phone', 'N/A')}
+    Website: {place.get('website', 'N/A')}
+    url = {results[0]['annotations']['OSM']['url']}
+    """
+    return summary
