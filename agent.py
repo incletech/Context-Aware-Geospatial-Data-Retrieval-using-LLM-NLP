@@ -22,14 +22,13 @@ falcon_completion = LlmModel.from_config("ai71", "tiiuae/falcon-180B-chat", 1, 8
 llama_70b_tool_calling_completion = LlmModel.from_config("groq", "llama3-groq-70b-8192-tool-use-preview", 1, 8192)
 llama_31_70b_completion = LlmModel.from_config("groq", "llama-3.1-70b-versatile", 0, 4000)
 
-def agent(prompt, user_name ,latitude, longitude):
+def agent(prompt, history, user_name ,latitude, longitude):
     city, state = find_location(latitude, longitude)
     weather = "rainy"
     system_message = agent_prompt(user_name, city, state, weather, time)
-
-
-    #history =get_history_from_worker(conversation_history,conversation_id)
-    messages = [system_message] + [{"role": "user", "content": prompt}]
+    messages = [system_message] + history + [{"role": "user", "content": prompt}]
+    messages.pop()
+    print(messages)
     intent, map_url = None, None
     while True:
         response = llama_70b_tool_calling_completion.function_calling(messages=messages, tools=tools)
@@ -84,6 +83,6 @@ def agent(prompt, user_name ,latitude, longitude):
             }
                                 
     
-x = agent("what is a distance between madurai to chennai", "gokul", 11.7910866,77.778496)
-print(x)
-print(x["completion"])
+# x = agent("what is a distance between madurai to chennai", "gokul", 11.7910866,77.778496)
+# print(x)
+# print(x["completion"])

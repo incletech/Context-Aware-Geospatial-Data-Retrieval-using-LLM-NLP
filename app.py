@@ -26,7 +26,10 @@ def page():
   mel.chat(transform, title="Context aware LLM", bot_user="Incle Bot")
 
 def transform(input: str, history: list[mel.ChatMessage]):
-  x = agent(input, "gokul", 11.7910866,77.778496)
+  transformed_history = [{"role": message.role, "content": message.content} for message in history]
+  transformed_history.pop()
+  print(transformed_history)
+  x = agent(input,transformed_history ,"gokul", 11.7910866,77.778496)
   selected_line = x["completion"]
   words = selected_line.split()
   for word in words:
