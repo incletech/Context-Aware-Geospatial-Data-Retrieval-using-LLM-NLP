@@ -12,7 +12,8 @@ def agent_prompt(name, city, state, weather, time):
         don't confirm anything from the user.mandatory
         dont ask user to wait and dont share what is you are processing
         you have to call the tool.mandatory
-
+        the date format shoud be (YYYY-MM-DDD)
+        dont ask user what tool you are using are what tool you are accessing
         Available Tools(choose the tool by own don't ask this to user):
         
         - location_nearby_search: Search for nearby places (e.g., coffee shops).
@@ -135,11 +136,11 @@ tools = [
                     },
                     "departure_date": {
                         "type": "string",
-                        "description": "Date of departure."
+                        "description": "Date of departure (YYYY-MM-DDD)."
                     },
                     "return_date": {
                         "type": "string",
-                        "description": "Date of return (optional)."
+                        "description": "Date of return  (YYYY-MM-DDD)(optional)."
                     }
                 },
                 "required": ["departure_location", "arrival_location", "departure_date"]

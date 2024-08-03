@@ -1,7 +1,7 @@
 from googleapiclient.discovery import build
 import os
 from opencage.geocoder import OpenCageGeocode
-
+from groq import Groq
 def search(search_term):
     search_result = ""
     service = build("customsearch", "v1", developerKey=os.environ.get("GOOGLE_API_KEY"))
@@ -162,45 +162,67 @@ def weather_search(location):
     print(weather_details)
     weather_report=f"""{weather_details}"""
     return weather_report
+def code(airport):
+    client = Groq(
+    api_key=os.getenv("groq_api"),
+    )
+    link="https://www.nationsonline.org/oneworld/IATA_Codes/airport_code_list.htm"
+    prompt=f"I'll give you the airport name you have to convert that to The International Air Transport Association's (IATA) Location Identifier is a unique 3-letter code (also commonly known as IATA code) used in aviation and also in logistics to identify an airport for your reference I'll give the data of the code {link}. For example, JFK is the IATA code for, you might know it, New York's John F. Kennedy International Airport,just return code alone not any other text.You should give it more accurately"
 
-def flights(depature,arrival,outbound_date,return_date):
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": prompt
+            },
+            {
+                "role": "user",
+                "content": airport,
+            }
+        ],
+        model="llama3-70b-8192",
+    )
+    return chat_completion.choices[0].message.content
+def flights(departure, arrival, outbound_date, return_date):
+    departure = code(departure)
+    arrival = code(arrival)
     params = {
-    "api_key": os.environ.get("serph_api"),
-    "engine": "google_flights",
-    "hl": "en",
-    "gl": "in",
-    "departure_id":depature,
-    "arrival_id": arrival,
-    "outbound_date": outbound_date,
-    "return_date": return_date,
-    "currency": "INR"
+        "api_key": os.environ.get("serph_api"),
+        "engine": "google_flights",
+        "hl": "en",
+        "gl": "in",
+        "departure_id": departure,
+        "arrival_id": arrival,
+        "outbound_date": outbound_date,
+        "return_date": return_date,
+        "currency": "INR"
     }
-    client = serpapi.Client(api_key=os.environ.get("serph_api"))
-    search = client.search(params)
-    results = search.as_dict()
-    summary=f"""
-    flights
-    """
-    for flight in results.get('best_flights', []):
-        summary += f"""
-    Airline: {flight['flights'][0].get('airline', 'N/A')}
-    Flight Number: {flight['flights'][0].get('flight_number', 'N/A')}
-    Departure Airport: {flight['flights'][0]['departure_airport'].get('name', 'N/A')} ({flight['flights'][0]['departure_airport'].get('id', 'N/A')})
-    Departure Time: {flight['flights'][0]['departure_airport'].get('time', 'N/A')}
-    Arrival Airport: {flight['flights'][0]['arrival_airport'].get('name', 'N/A')} ({flight['flights'][0]['arrival_airport'].get('id', 'N/A')})
-    Arrival Time: {flight['flights'][0]['arrival_airport'].get('time', 'N/A')}
-    Duration: {flight['flights'][0].get('duration', 'N/A')} minutes
-    Airplane: {flight['flights'][0].get('airplane', 'N/A')}
-    Layover:
-        Airport: {flight['layovers'][0].get('name', 'N/A')} ({flight['layovers'][0].get('id', 'N/A')})
-        Duration: {flight['layovers'][0].get('duration', 'N/A')} minutes
 
-    Total Duration: {flight.get('total_duration', 'N/A')} minutes
-    Carbon Emissions: {flight['carbon_emissions'].get('this_flight', 'N/A')} kg (difference: {flight['carbon_emissions'].get('difference_percent', 'N/A')}% compared to typical)
-    Price: ${flight.get('price', 'N/A')}
-    """
+    try:
+        client = serpapi.Client(api_key=os.environ.get("serph_api"))
+        search = client.search(params)
+        results = search.as_dict()
+        print(results)
+        summary = "flights\n"
+        for flight in results.get('best_flights', []):
+            summary += f"""
+              Airline: {flight['flights'][0].get('airline', 'N/A')}
+              Flight Number: {flight['flights'][0].get('flight_number', 'N/A')}
+              Departure Airport: {flight['flights'][0]['departure_airport'].get('name', 'N/A')} ({flight['flights'][0]['departure_airport'].get('id', 'N/A')})
+              Departure Time: {flight['flights'][0]['departure_airport'].get('time', 'N/A')}
+              Arrival Airport: {flight['flights'][0]['arrival_airport'].get('name', 'N/A')} ({flight['flights'][0]['arrival_airport'].get('id', 'N/A')})
+              Arrival Time: {flight['flights'][0]['arrival_airport'].get('time', 'N/A')}
+              Duration: {flight['flights'][0].get('duration', 'N/A')} minutes
+              Airplane: {flight['flights'][0].get('airplane', 'N/A')}
 
-    return summary
+              Total Duration: {flight.get('total_duration', 'N/A')} minutes
+              Carbon Emissions: {flight['carbon_emissions'].get('this_flight', 'N/A')} kg (difference: {flight['carbon_emissions'].get('difference_percent', 'N/A')}% compared to typical)
+              Price: ${flight.get('price', 'N/A')}
+              """
+        return summary
+
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 def local_search(query,location):
     print(os.environ.get("serph_api"))
