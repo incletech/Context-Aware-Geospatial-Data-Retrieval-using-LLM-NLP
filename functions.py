@@ -104,6 +104,7 @@ def news_search(topic):
         news+=f"""\nTitle:{final["title"]},\nSource:{final["source"]},\nLink:{final["link"]},\nDate:{final["date"]}\n"""
 
     return news
+
 def local_event(location):
     params = {
     "api_key": os.environ.get("serph_api"),
@@ -114,7 +115,8 @@ def local_event(location):
     client = serpapi.Client(api_key=os.environ.get("serph_api"))
     search = client.search(params)
     results = search.as_dict()
-    # print(results["events_results"][0:5])
+    search_metadata = results.get('search_metadata', {})
+    google_map_direction_url = search_metadata.get('google_events_url', 'N/A')
     events=f"""
     local events
     """
@@ -125,15 +127,10 @@ def local_event(location):
         address = ', '.join(event['address'])
         ticket_link = event['link']
         map_link = event['event_location_map']['link']
-        # Print the result
-        print(f"Title: {title}")
-        print(f"Date and Time: {date_time}")
-        print(f"Address: {address}")
-        print(f"Ticket Link: {ticket_link}")
-        print(f"Map: {map_link}")
         events+=f"""\nTitle:{title},\nDate and Time:{date_time},\nAddress:{address},\nTicket Link: {ticket_link},\nMap:{map_link}\n"""
 
-    return events
+    return events, google_map_direction_url
+
 def weather_search(location):   
     params = {
     "api_key": os.environ.get("serph_api"),
@@ -148,7 +145,6 @@ def weather_search(location):
     client = serpapi.Client(api_key=os.environ.get("serph_api"))
     search = client.search(params)
     results = search.as_dict()
-    print(results)
     weather_details = {
         "temperature": results["answer_box"]["temperature"],
         "unit": results["answer_box"]["unit"],
@@ -159,9 +155,9 @@ def weather_search(location):
         "date": results["answer_box"]["date"],
         "weather": results["answer_box"]["weather"]
     }
-    print(weather_details)
     weather_report=f"""{weather_details}"""
     return weather_report
+
 def code(airport):
     client = Groq(
     api_key=os.getenv("groq_api"),
@@ -183,6 +179,7 @@ def code(airport):
         model="llama3-70b-8192",
     )
     return chat_completion.choices[0].message.content
+
 def flights(departure, arrival, outbound_date, return_date):
     departure = code(departure)
     arrival = code(arrival)
@@ -203,6 +200,8 @@ def flights(departure, arrival, outbound_date, return_date):
         search = client.search(params)
         results = search.as_dict()
         print(results)
+        search_metadata = results.get('search_metadata', {})
+        reference_url = search_metadata.get('google_flights_url', 'N/A')
         summary = "flights\n"
         for flight in results.get('best_flights', []):
             summary += f"""
@@ -217,43 +216,51 @@ def flights(departure, arrival, outbound_date, return_date):
 
               Total Duration: {flight.get('total_duration', 'N/A')} minutes
               Carbon Emissions: {flight['carbon_emissions'].get('this_flight', 'N/A')} kg (difference: {flight['carbon_emissions'].get('difference_percent', 'N/A')}% compared to typical)
-              Price: ${flight.get('price', 'N/A')}
+              Price: ₹{flight.get('price', 'N/A')}
               """
-        return summary
+        return summary, reference_url
 
     except Exception as e:
         return f"An error occurred: {e}"
 
-def local_search(query,location):
+def local_search(query, latitude, longitude, zoom = 10):
     print(os.environ.get("serph_api"))
     params = {
     "engine": "google_maps",
     "type": "search",
     "google_domain": "google.com",
     "q": query,
-    "ll": location,
+    "ll": f"@{latitude},{longitude},{zoom}z",
     "hl": "en"
     }
 
     search = client.search(params)
     results = search.as_dict()
-    # print(results)
-    summary=f"""
-    local results
-    """
-    for place in results.get('local_results', []):
-        key = os.environ.get("OpenCage")
-        geocoder = OpenCageGeocode(key)
-        results = geocoder.reverse_geocode(place['gps_coordinates'].get('latitude'),place['gps_coordinates'].get('longitude'))
+    print(results)
+    
+    summary = ""
+
+    search_metadata = results.get('search_metadata', {})
+    google_map_direction_url = search_metadata.get('google_maps_url', 'N/A')
+    local_results = results.get('local_results', [])
+
+    for place in local_results:
         summary += f"""
-    Title: {place.get('title', 'N/A')}
-    Rating: {place.get('rating', 'N/A')}
-    Address: {place.get('address', 'N/A')}
-    Open State: {place.get('open_state', 'N/A')}
-    Hours: {place.get('hours', 'N/A')}
-    Operating Hours: {place.get('operating_hours', 'N/A')}
-    Phone: {place.get('phone', 'N/A')}
-    Website: {place.get('website', 'N/A')}
-    url = {results[0]['annotations']['OSM']['url']}
+{place.get('position', 'N/A')}. {place.get('title', 'N/A')}
+  - Place ID: {place.get('place_id', 'N/A')}
+  - Data ID: {place.get('data_id', 'N/A')}
+  - Rating: {place.get('rating', 'N/A')}
+  - Reviews: {place.get('reviews', 'N/A')}
+  - Type: {place.get('type', 'N/A')}
+  - Address: {place.get('address', 'N/A')}
+  - Open State: {place.get('open_state', 'N/A')}
+  - Phone: {place.get('phone', 'N/A')}
+  - User Review: {place.get('user_review', 'N/A')}
+        """
+
+    pagination = results.get('serpapi_pagination', {})
+    summary += f"""
+SERP API Pagination:
+  Next: {pagination.get('next', 'N/A')}
     """
-    return summary
+    return summary, google_map_direction_url

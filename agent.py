@@ -29,7 +29,7 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
     history = get_history_from_worker(conversation_history, conversation_id)
     messages = [system_message] + history + [{"role": "user", "content": prompt}]
     #messages.pop()
-    intent, map_url = None, None
+    intent, map_url, reference_url = None, None, None
     while True:
         response = llama_70b_tool_calling_completion.function_calling(messages=messages, tools=tools)
         response_message = response.choices[0].message
@@ -41,28 +41,32 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
                 print(f"Function call: {function_name}")
                 print(f"Function arguments: {function_args}")
                 print("\n\n")
+
+
                 if function_name == "location_nearby_search":
                     intent = "location_nearby_search"
                     query,location=function_args.get("service_type"),function_args.get("location_name")
-                    summary= local_search(query,location)
+                    summary, map_url= local_search(query, latitude, longitude, 15)
                     messages.append({"role": "user", "content":f"Observation :/n{summary}"})
+
                 elif function_name == "direction_search":
                     intent = "direction_search"
                     start, end = function_args.get("start_location"),  function_args.get("end_location")
-                    summary, google_map_url = direction_tool(start, end)
-                    map_url = google_map_url
+                    summary, map_url = direction_tool(start, end)
                     messages.append({"role": "user", "content":f"Observation :/n{summary}"})
+                
                 elif function_name == "location_search":
                     intent = "location_search"
                     inputs = function_args.get("location_name")
                     web_search = search(inputs)
                     messages.append({"role": "user", "content":f"Observation :/n{web_search}"})
+
                 elif function_name == "service_nearby_search":
                     print("service")
                     intent = "service_nearby_search"
                     query,location=function_args.get("service_type"),function_args.get("location_name")
                     print("In")
-                    summary= local_search(query,location)
+                    summary, map_url= local_search(query, latitude, longitude, 15)
                     print("fun")
                     messages.append({"role": "user", "content":f"Observation :/n{summary}"})
                 elif function_name == "weather_search":
@@ -74,12 +78,13 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
                 elif function_name == "local_events_search":
                     intent = "local_events_search"
                     inputs=function_args.get("location_name")
-                    local_events_search = local_event(inputs)
+                    local_events_search, reference_url = local_event(inputs)
+
                     messages.append({"role": "user", "content":f"Observation :/n{local_events_search}"})
                 elif function_name == "flight_search":
                     intent = "flight_search"
                     departure_location,arrival_location,departure_date,return_date=function_args.get("departure_location"),function_args.get("arrival_location"),function_args.get("departure_date"),function_args.get("return_date")
-                    flight_search = flights(departure_location,arrival_location,departure_date,return_date)
+                    flight_search, reference_url = flights(departure_location,arrival_location,departure_date,return_date)
                     messages.append({"role": "user", "content":f"Observation :/n{flight_search}"})
                 elif function_name == "local_news_search":
                     intent = "local_news_search"
@@ -97,5 +102,8 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
                 "completion" : response_message.content,
                 "conversation_id" : conversation_id,
                 "intent" : intent,
-                "map_url" : map_url
+                "map_url" : map_url,
+                "reference_url" : reference_url
             }
+        
+print(agent("hi", "242c324", "Gokul", 11.7910866,77.778496))
