@@ -12,6 +12,7 @@ def search(search_term):
 
 import serpapi
 
+client = serpapi.Client(api_key=os.environ.get("serph_api"))
 
 def direction_tool(start_location, end_location):
     params = {
@@ -204,7 +205,6 @@ def flights(depature,arrival,outbound_date,return_date):
 def local_search(query,location):
     print(os.environ.get("serph_api"))
     params = {
-    "api_key": "a006c3a18cff16fef629ae9aa70bd96b7f0d9ef3902eb36b5d89acc3150ebede",
     "engine": "google_maps",
     "type": "search",
     "google_domain": "google.com",
@@ -213,7 +213,6 @@ def local_search(query,location):
     "hl": "en"
     }
 
-    client = serpapi.Client(api_key="a006c3a18cff16fef629ae9aa70bd96b7f0d9ef3902eb36b5d89acc3150ebede")
     search = client.search(params)
     results = search.as_dict()
     # print(results)
@@ -221,7 +220,7 @@ def local_search(query,location):
     local results
     """
     for place in results.get('local_results', []):
-        key = '20f128ccdc234786bb5eb9f12f8f036f'
+        key = os.environ.get("OpenCage")
         geocoder = OpenCageGeocode(key)
         results = geocoder.reverse_geocode(place['gps_coordinates'].get('latitude'),place['gps_coordinates'].get('longitude'))
         summary += f"""

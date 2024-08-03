@@ -8,12 +8,6 @@ from agent import agent
 def on_load(e: me.LoadEvent):
   me.set_theme_mode("system")
 
-def stream_text(response, chunk_size=10, delay=0.1):
-    for i in range(0, len(response), chunk_size):
-        chunk = response[i:i+chunk_size]
-        time.sleep(delay)
-        yield chunk
-
 @me.page(
   security_policy=me.SecurityPolicy(
     allowed_iframe_parents=["https://google.github.io", "https://huggingface.co"]

@@ -1,17 +1,35 @@
-import random, time, mel
+import requests
 
-LINES = [
-  "Mesop is a Python-based UI framework designed to simplify web UI development for engineers without frontend experience.",
-  "It leverages the power of the Angular web framework and Angular Material components, allowing rapid construction of web demos and internal tools.",
-  "With Mesop, developers can enjoy a fast build-edit-refresh loop thanks to its hot reload feature, making UI tweaks and component integration seamless.",
-  "Deployment is straightforward, utilizing standard HTTP technologies.",
-  "Mesop's component library aims for comprehensive Angular Material component coverage, enhancing UI flexibility and composability.",
-  "It supports custom components for specific use cases, ensuring developers can extend its capabilities to fit their unique requirements.",
-  "Mesop's roadmap includes expanding its component library and simplifying the onboarding processs.",
-]
+headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer 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'
+    }
+url = 'https://incletech-incle-ai71.hf.space/agent'
 
+def send_request(prompt, conversation_id, user_name, latitude, longitude):
+    payload = {
+        'prompt': prompt,
+        'conversation_id': conversation_id,
+        'user_name': user_name,
+        'latitude': latitude,
+        'longitude': longitude
+    }
+    
+    response = requests.post(url, headers=headers, json=payload)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return {"error": response.status_code, "message": response.text}
 
-def transform(input: str, history: list[mel.ChatMessage]):
-  for line in random.sample(LINES, random.randint(3, len(LINES) - 1)):
-    time.sleep(0.3)
-    yield line + " "
+# Example usage
+response = send_request(
+    prompt="whats the distance between chennai to madurai",
+    conversation_id="4v4955t45",
+    user_name="Gokul",
+    latitude=11.7910873,
+    longitude=77.7990956,
+)
+
+print(response)
