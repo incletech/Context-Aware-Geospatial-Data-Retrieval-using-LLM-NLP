@@ -1,13 +1,13 @@
-from prompt import agent_prompt, tools
-from llm import *
-from functions import *
+from src.Aadheera.prompt import agent_prompt, tools
+from src.Aadheera.llm import *
+from src.Aadheera.functions import *
 import geocoder
 import json, os
-from location import GeocodingClient, find_location
+from src.Aadheera.location import GeocodingClient
 from datetime import datetime
 import pytz
 from pymongo import MongoClient
-from database import *
+from src.Aadheera.database import *
 
 mongo_client = MongoClient(os.getenv("mongo_db_connection_string"))
 db = mongo_client["incle"]
@@ -18,18 +18,37 @@ current_time_india = datetime.now(india_tz)
 time = current_time_india.strftime('%Y-%m-%d %H:%M:%S')
 
 client = GeocodingClient()
+
+
 falcon_completion = LlmModel.from_config("ai71", "tiiuae/falcon-180B-chat", 1, 8192)
 llama_70b_tool_calling_completion = LlmModel.from_config("groq", "llama3-groq-70b-8192-tool-use-preview", 1, 8192)
 llama_31_70b_completion = LlmModel.from_config("groq", "llama-3.1-70b-versatile", 0, 4000)
 
-def agent(prompt, conversation_id, user_name ,latitude, longitude):
-    city, state = find_location(latitude, longitude)
-    weather = "rainy"
-    system_message = agent_prompt(user_name, city, state, weather, time)
-    history = get_history_from_worker(conversation_history, conversation_id)
+def agent_api(prompt, conversation_id, user_name ,latitude, longitude):
+
+    history, city, state, weather_data, history_latitude, history_longitude = get_history_from_worker(conversation_history, conversation_id)
+
+    if history:
+        weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
+        print("old history")
+        if latitude != history_latitude or longitude != history_longitude:
+            print("new location")
+            city, state = client.google_reverse_geocode(latitude, longitude)
+            weather_data = weather_search(f"{city}, {state}")
+            weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
+
+    else:
+        print("no history")
+        city, state = client.google_reverse_geocode(latitude, longitude)
+        weather_data = weather_search(f"{city}, {state}")
+        print(weather_data)
+        weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
+
+    print(weather_data_string)    
+    system_message = agent_prompt(user_name, city, state, weather_data_string, time)
     messages = [system_message] + history + [{"role": "user", "content": prompt}]
-    #messages.pop()
     intent, map_url, reference_url = None, None, None
+
     while True:
         response = llama_70b_tool_calling_completion.function_calling(messages=messages, tools=tools)
         response_message = response.choices[0].message
@@ -58,7 +77,7 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
                 elif function_name == "location_search":
                     intent = "location_search"
                     inputs = function_args.get("location_name")
-                    web_search = search(inputs)
+                    web_search = web_search(inputs)
                     messages.append({"role": "user", "content":f"Observation :/n{web_search}"})
 
                 elif function_name == "service_nearby_search":
@@ -72,9 +91,8 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
                 elif function_name == "weather_search":
                     intent = "weather_search"
                     inputs=function_args.get("location_name")
-                    weather_result = weather_search(inputs)
+                    weather_result = str(weather_search(inputs))
                     messages.append({"role": "user", "content":f"Observation :/n{weather_result}"})
-                    weather
                 elif function_name == "local_events_search":
                     intent = "local_events_search"
                     inputs=function_args.get("location_name")
@@ -83,7 +101,10 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
                     messages.append({"role": "user", "content":f"Observation :/n{local_events_search}"})
                 elif function_name == "flight_search":
                     intent = "flight_search"
-                    departure_location,arrival_location,departure_date,return_date=function_args.get("departure_location"),function_args.get("arrival_location"),function_args.get("departure_date"),function_args.get("return_date")
+                    departure_location = function_args.get("departure_location", None)
+                    arrival_location = function_args.get("arrival_location", None)
+                    departure_date = function_args.get("departure_date", None)
+                    return_date = function_args.get("return_date", None)
                     flight_search, reference_url = flights(departure_location,arrival_location,departure_date,return_date)
                     messages.append({"role": "user", "content":f"Observation :/n{flight_search}"})
                 elif function_name == "local_news_search":
@@ -94,10 +115,10 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
                 elif function_name == "web_search":
                     intent = "web_search"
                     inputs = function_args.get("query")
-                    web_search = search(inputs)
-                    messages.append({"role": "user", "content":f"Observation :/n{web_search}"})
+                    web_search_result = web_search(inputs)
+                    messages.append({"role": "user", "content":f"Observation :/n{web_search_result}"})
         else:
-            insert_conversations(conversation_history, prompt, response_message.content, conversation_id, latitude, longitude, time, map_url, intent)
+            insert_conversations(conversation_history, prompt, response_message.content, conversation_id, city, state,weather_data ,latitude, longitude, time, map_url, intent)
             return {
                 "completion" : response_message.content,
                 "conversation_id" : conversation_id,
@@ -105,5 +126,3 @@ def agent(prompt, conversation_id, user_name ,latitude, longitude):
                 "map_url" : map_url,
                 "reference_url" : reference_url
             }
-        
-print(agent("hi", "242c324", "Gokul", 11.7910866,77.778496))

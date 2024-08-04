@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from agent import agent
+from agent import agent_api
 
 app = FastAPI()
 
@@ -16,7 +16,7 @@ class AgentRequest(BaseModel):
 @app.post("/agent")
 def run_agent(request: AgentRequest):
     try:
-        result = agent(
+        result = agent_api(
             prompt=request.prompt,
             conversation_id=request.conversation_id,
             user_name=request.user_name,

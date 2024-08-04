@@ -1,15 +1,16 @@
 from ai71 import AI71 
 import os
 from typing import List, Optional, Dict, Any
-from dotenv import load_dotenv
 from groq import Groq
-load_dotenv()
+from together import Together
 
+client = Together(api_key=os.environ.get("TOGETHER_API_KEY"))
 class ClientInitializerLlm:
     def __init__(self):
         self.clients = {
             'ai71': self.init_ai71_client(),
-            'groq':self.init_groq_client()
+            'groq':self.init_groq_client(),
+            'together_ai':self.init_together_client()
         }
 
     def init_ai71_client(self):
@@ -20,6 +21,9 @@ class ClientInitializerLlm:
         return Groq(
             api_key=os.getenv("groq_api")
         )
+    def init_together_client(self):
+        return Together(api_key=os.getenv("together_ai"))
+    
     def get_client(self, client_name: str):
         return self.clients.get(client_name)
 

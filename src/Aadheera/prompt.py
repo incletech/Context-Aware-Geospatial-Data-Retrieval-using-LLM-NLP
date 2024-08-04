@@ -2,29 +2,23 @@ def agent_prompt(name, city, state, weather, time):
     return {
         "role": "system",
         "content": f"""
-        You are an intelligent bot named Aadheera designed to handle user queries and provide precise information. Select the appropriate tool for each query. You are responsible for identifying and solving user queries and reporting to the human with the help of given tools.
+        You are an intelligent bot named Aadheera designed to handle user queries and provide precise information. Select the appropriate tool for each query, Choose the tools automatically to solve the user's query don't ask this to user.
         
         You are speaking with {name} in {city}, {state}. The current weather is {weather}, and the time is {time}. Greet the user with a comment on the current weather using an emoji with your name.
         
         -strictly follow
-        Don't say what tool you are using just give the response directly.mandatory
-        dont confirm the tool with user select the tool by yourself.mandatory
-        other than greeting who should not process and give output by yourself you have to call the tool.mandatory
-        don't confirm anything from the user.mandatory
-        dont ask user to wait and dont share what is you are processing
-        you have to call the tool.mandatory
+        use tools for solving the user query's. all ways use tools to solve the user query.
+        don't generate false information by your own, without the tool's observation.
         the date format shoud be (YYYY-MM-DDD)
-        dont ask user what tool you are using are what tool you are accessing
         
         Available Tools(choose the tool by own don't ask this to user):
-        
-        - location_nearby_search: Search for nearby places (e.g., coffee shops).
+
         - location_search: Search for specific locations by name.
         - service_nearby_search: Find nearby services (e.g., plumbing).
-        - weather_search: Get current weather information for a location.
-        - local_events_search: Find events in a specified area.
-        - flight_search: Find flights between two locations.
-        - direction_search: Get directions between two places.
+        - weather_search: Get current weather information for a location(user's current location(default) : {city}, {state})
+        - local_events_search: Find events in a specified area.(user's current location(default) : {city}, {state})
+        - flight_search: Find available flights between two locations. (user's current location(default) : {city}, {state})
+        - direction_search: Get directions between two places.(user's current location(default) : {city}, {state})
         - web_search: Fetch current events or updates.
         - news_search: Search for news updates.
         
@@ -35,23 +29,23 @@ def agent_prompt(name, city, state, weather, time):
     }
 
 tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "location_nearby_search",
-            "description": "Search for nearby places of a specified type.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "place_type": {
-                        "type": "string",
-                        "description": "Type of place (e.g., coffee shop, bus stop)."
-                    }
-                },
-                "required": ["place_type"]
-            }
-        }
-    },
+    # {
+    #     "type": "function",
+    #     "function": {
+    #         "name": "location_nearby_search",
+    #         "description": "Search for nearby places of a specified type.",
+    #         "parameters": {
+    #             "type": "object",
+    #             "properties": {
+    #                 "place_type": {
+    #                     "type": "string",
+    #                     "description": "Type of place (e.g., coffee shop, bus stop)."
+    #                 }
+    #             },
+    #             "required": ["place_type"]
+    #         }
+    #     }
+    # },
     {
         "type": "function",
         "function": {
@@ -73,13 +67,13 @@ tools = [
         "type": "function",
         "function": {
             "name": "service_nearby_search",
-            "description": "Search for nearby services of a specified type.",
+            "description": "Search for nearby services or bussiness or shops, etc in user current location.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "service_type": {
                         "type": "string",
-                        "description": "Type of service (e.g., plumbing)."
+                        "description": "Type of service only needed to find a service."
                     }
                 },
                 "required": ["service_type"]
@@ -96,7 +90,7 @@ tools = [
                 "properties": {
                     "location_name": {
                         "type": "string",
-                        "description": "Name of the location."
+                        "description": "Name of the location. only location name is required"
                     }
                 },
                 "required": ["location_name"]
@@ -113,7 +107,7 @@ tools = [
                 "properties": {
                     "location_name": {
                         "type": "string",
-                        "description": "Name of the location."
+                        "description": "Name of the location. only location name is required"
                     }
                 },
                 "required": ["location_name"]
@@ -124,21 +118,21 @@ tools = [
         "type": "function",
         "function": {
             "name": "flight_search",
-            "description": "Search for flights between two locations.",
+            "description": "Search for flights between two locations or checking for availability of flights between two locations.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "departure_location": {
                         "type": "string",
-                        "description": "Departure location."
+                        "description": "Departure location. this to user"
                     },
                     "arrival_location": {
                         "type": "string",
-                        "description": "Arrival location."
+                        "description": "Arrival location. ask this to user"
                     },
                     "departure_date": {
                         "type": "string",
-                        "description": "Date of departure (YYYY-MM-DDD)."
+                        "description": "Date of departure (YYYY-MM-DDD). this is mandatory field ask this to user."
                     },
                     "return_date": {
                         "type": "string",
@@ -153,7 +147,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "direction_search",
-            "description": "Get directions between two places.",
+            "description": "Get directions between two places or distance.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -180,7 +174,7 @@ tools = [
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "User query."
+                        "description": "web search query"
                     }
                 },
                 "required": ["query"]
@@ -191,7 +185,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "news_search",
-            "description": "Search for news on a specified topic.",
+            "description": "Search for news on a specified topic and any topics.",
             "parameters": {
                 "type": "object",
                 "properties": {

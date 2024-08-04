@@ -1,19 +1,21 @@
 import os
 import requests
 from opencage.geocoder import OpenCageGeocode
-
-geocoder = OpenCageGeocode(os.getenv("OpenCage"))
+import googlemaps
 
 class GeocodingClient:
-    def __init__(self, api_key=None, request_id=None):
+    def __init__(self, api_key=None, request_id=None, google_api_key=None):
         self.api_key = api_key or os.getenv("ola_api_key")
         self.request_id = request_id or os.getenv("ola_requestor_id")
+        self.google_api_key = google_api_key or os.getenv("google_map")
         self.base_url = 'https://api.olamaps.io/places/v1'
         self.headers = {
             'X-Request-Id': self.request_id
         }
-        if not self.api_key or not self.request_id:
-            raise ValueError("API key and Request ID must be provided")
+        if not self.api_key or not self.request_id or not self.google_api_key:
+            raise ValueError("API key, Request ID, and Google API key must be provided")
+
+        self.gmaps = googlemaps.Client(key=self.google_api_key)
 
     def _make_request(self, endpoint, params):
         url = f'{self.base_url}/{endpoint}'
@@ -59,30 +61,24 @@ class GeocodingClient:
             print(f'Location: Latitude = {latitude}, Longitude = {longitude}')
             print('-' * 40)
 
-import googlemaps
+    def google_reverse_geocode(self, latitude, longitude):
+        if (latitude is None or longitude is None or 
+            not -90 <= latitude <= 90 or 
+            not -180 <= longitude <= 180 or 
+            (latitude == 0 and longitude == 0)):
+            return "unknown", "unknown"  
 
-api_key = os.getenv("google_map")
-url = "https://maps.googleapis.com/maps/api/geocode/json"
-gmaps = googlemaps.Client(key=api_key)
+        reverse_geocode_result = self.gmaps.reverse_geocode((latitude, longitude))
+        if reverse_geocode_result:
+            result = reverse_geocode_result[0]
+            city = "unknown"
+            admin_area = "unknown"
+            for component in result["address_components"]:
+                if "locality" in component["types"]:
+                    city = component["long_name"]
+                elif "administrative_area_level_1" in component["types"]:
+                    admin_area = component["long_name"]
+            return city, admin_area
+        else:
+            return "unknown", "unknown"
 
-
-def find_location(latitude, longitude):
-    if (latitude is None or longitude is None or 
-        not -90 <= latitude <= 90 or 
-        not -180 <= longitude <= 180 or 
-        (latitude == 0 and longitude == 0)):
-        return "unknown", "unknown"  
-
-    reverse_geocode_result = gmaps.reverse_geocode((latitude, longitude))
-    if reverse_geocode_result:
-        result = reverse_geocode_result[0]  
-        city = "unknown"
-        admin_area = "unknown"
-        for component in result["address_components"]:
-            if "locality" in component["types"]:
-                city = component["long_name"]
-            elif "administrative_area_level_1" in component["types"]:
-                admin_area = component["long_name"]
-        return city, admin_area
-    else:
-        return "unknown", "unknown"
