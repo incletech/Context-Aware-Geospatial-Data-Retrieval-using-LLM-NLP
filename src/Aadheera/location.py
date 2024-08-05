@@ -21,7 +21,7 @@ class GeocodingClient:
         url = f'{self.base_url}/{endpoint}'
         params['api_key'] = self.api_key
         response = requests.get(url, params=params, headers=self.headers)
-        response.raise_for_status()  # Raise an exception for HTTP errors
+        response.raise_for_status() 
         return response.json()
 
     def reverse_geocode(self, latitude, longitude):

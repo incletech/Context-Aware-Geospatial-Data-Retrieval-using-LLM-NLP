@@ -264,7 +264,20 @@ import os
 from opencage.geocoder import OpenCageGeocode
 from groq import Groq
 import serpapi
-client = serpapi.Client(api_key=os.environ.get("serph_api"))
+import re
+from urllib.parse import urlencode, unquote
+import os
+import itertools
+
+
+# serph_key = [
+#     os.getenv("serph_api"),   
+#     os.getenv("serph_api1")
+# ]
+
+# serph_key_cycle = itertools.cycle(serph_key)
+
+client = serpapi.Client(api_key=os.getenv("serph_api"))
 
 def web_search(search_term):
     search_result = ""
@@ -274,6 +287,7 @@ def web_search(search_term):
         search_result = search_result + result['snippet']
     return search_result
 
+#emb
 def direction_tool(start_location, end_location):
     params = {
     "engine": "google_maps_directions",
@@ -285,6 +299,7 @@ def direction_tool(start_location, end_location):
     search = client.search(params)
     results = search.as_dict()
     google_map_direction_url =  results['search_metadata']['google_maps_directions_url']
+    google_map_direction_url = convert_to_embed_url_direction(google_map_direction_url)
 
     summary = f"""
     Places Info
@@ -400,6 +415,7 @@ def weather_search(location):
     }
     search = client.search(params)
     results = search.as_dict()
+    print(results)
     weather_details = {
         "temperature": results["answer_box"]["temperature"],
         "unit": results["answer_box"]["unit"],
@@ -477,6 +493,7 @@ def flights(departure, arrival, outbound_date, return_date=None):
     except Exception as e:
         return f"An error occurred: {e}"
 
+#emb
 def local_search(query, latitude, longitude, zoom = 10):
     params = {
     "engine": "google_maps",
@@ -494,7 +511,11 @@ def local_search(query, latitude, longitude, zoom = 10):
     summary = "Show the all major informations to use. \n"
     
     search_metadata = results.get('search_metadata', {})
-    google_map_direction_url = search_metadata.get('google_maps_url', 'N/A')
+    google_map_direction_url = search_metadata.get('google_maps_url', None)
+
+    if google_map_direction_url:
+       google_map_direction_url = convert_to_embed_url(google_map_direction_url)
+        
     local_results = results.get('local_results', [])
 
     for place in local_results:
@@ -511,3 +532,47 @@ def local_search(query, latitude, longitude, zoom = 10):
         """
 
     return summary, google_map_direction_url
+
+def convert_to_embed_url(url):
+    query_pattern = re.compile(r'maps/search/([^/]+)')
+    query_match = query_pattern.search(url)
+    if not query_match:
+        raise ValueError("Invalid URL format: missing search query")
+    query = query_match.group(1)
+    coords_pattern = re.compile(r'@(-?\d+\.\d+),(-?\d+\.\d+),(\d+)z')
+    coords_match = coords_pattern.search(url)
+    if not coords_match:
+        raise ValueError("Invalid URL format: missing coordinates or zoom level")
+    
+    latitude = coords_match.group(1)
+    longitude = coords_match.group(2)
+    zoom = coords_match.group(3)
+    embed_url = "https://www.google.com/maps/embed/v1/place?" + urlencode({
+        'q': query,
+        'center': f'{latitude},{longitude}',
+        'zoom': zoom,
+        'key': os.environ.get("google_map")
+    })
+    
+    return embed_url
+
+def convert_to_embed_url_direction(url):
+    dir_pattern = re.compile(r'maps/dir/([^/]+)/([^/]+)/data')
+    dir_match = dir_pattern.search(url)
+    if not dir_match:
+        raise ValueError("Invalid URL format: missing directions path")
+    
+    start_location = unquote(dir_match.group(1))
+    end_location = unquote(dir_match.group(2))
+    travel_mode_match = re.search(r'(\d{2})(\?hl=en)?$', url)
+    travel_mode = "driving"
+    if travel_mode_match and travel_mode_match.group(1) == "3e6":
+        travel_mode = "two_wheeler"
+    embed_url = "https://www.google.com/maps/embed/v1/directions?" + urlencode({
+        'origin': start_location,
+        'destination': end_location,
+        'mode': travel_mode,
+        'key': os.environ.get("google_map")
+    })
+    
+    return embed_url

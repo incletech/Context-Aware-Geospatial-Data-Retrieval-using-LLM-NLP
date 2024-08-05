@@ -3,29 +3,34 @@ import os
 from typing import List, Optional, Dict, Any
 from groq import Groq
 from together import Together
+import itertools
 
-client = Together(api_key=os.environ.get("TOGETHER_API_KEY"))
+groq_keys = [
+    os.getenv("groq_api"),   
+    os.getenv("groq_api1"),
+    os.getenv("groq_api2")
+]
 class ClientInitializerLlm:
     def __init__(self):
+        #self.groq_key_cycle = itertools.cycle(groq_keys)  
         self.clients = {
             'ai71': self.init_ai71_client(),
-            'groq':self.init_groq_client(),
-            'together_ai':self.init_together_client()
+            'groq': self.init_groq_client(),
+            'together_ai': self.init_together_client()
         }
 
     def init_ai71_client(self):
-        return AI71(
-            api_key=os.getenv("AI71_API_KEY")
-        )
+        return AI71(api_key=os.getenv("AI71_API_KEY"))
+
     def init_groq_client(self):
-        return Groq(
-            api_key=os.getenv("groq_api")
-        )
+        return Groq(api_key=os.getenv("groq_api")) 
+
     def init_together_client(self):
         return Together(api_key=os.getenv("together_ai"))
     
     def get_client(self, client_name: str):
         return self.clients.get(client_name)
+
 
 class LlmModel:
     def __init__(self, client, model: str, temperature: float, max_tokens: int):

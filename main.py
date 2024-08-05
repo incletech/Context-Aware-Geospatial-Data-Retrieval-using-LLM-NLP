@@ -2,8 +2,20 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from agent import agent_api
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+import uptrace, os
 
 app = FastAPI()
+
+
+uptrace.configure_opentelemetry(
+    dsn=os.getenv("uptrace_client"),
+    service_name="myservice",
+    service_version="1.0.0",
+)
+
+FastAPIInstrumentor.instrument_app(app)
+
 
 class AgentRequest(BaseModel):
     prompt: str

@@ -29,27 +29,28 @@ def agent_api(prompt, conversation_id, user_name ,latitude, longitude):
     history, city, state, weather_data, history_latitude, history_longitude = get_history_from_worker(conversation_history, conversation_id)
 
     if history:
-        weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
+        # weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
         print("old history")
         if latitude != history_latitude or longitude != history_longitude:
             print("new location")
             city, state = client.google_reverse_geocode(latitude, longitude)
-            weather_data = weather_search(f"{city}, {state}")
-            weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
+            # weather_data = weather_search(f"{city}, {state}")
+            # weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
 
     else:
         print("no history")
         city, state = client.google_reverse_geocode(latitude, longitude)
-        weather_data = weather_search(f"{city}, {state}")
-        print(weather_data)
-        weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
-
-    print(weather_data_string)    
-    system_message = agent_prompt(user_name, city, state, weather_data_string, time)
+        print(city, state)
+        # weather_data = weather_search(city)
+        # print(weather_data)
+        # weather_data_string = f"temperature :{weather_data['temperature']}, wind :{weather_data['wind']}, humidity :{weather_data['humidity']}, weather: {weather_data['weather']}"
+    
+    system_message = agent_prompt(user_name, city, state, time)
     messages = [system_message] + history + [{"role": "user", "content": prompt}]
     intent, map_url, reference_url = None, None, None
 
     while True:
+        print("messages", messages)
         response = llama_70b_tool_calling_completion.function_calling(messages=messages, tools=tools)
         response_message = response.choices[0].message
         print(response_message)
@@ -81,12 +82,9 @@ def agent_api(prompt, conversation_id, user_name ,latitude, longitude):
                     messages.append({"role": "user", "content":f"Observation :/n{web_search}"})
 
                 elif function_name == "service_nearby_search":
-                    print("service")
                     intent = "service_nearby_search"
                     query,location=function_args.get("service_type"),function_args.get("location_name")
-                    print("In")
                     summary, map_url= local_search(query, latitude, longitude, 15)
-                    print("fun")
                     messages.append({"role": "user", "content":f"Observation :/n{summary}"})
                 elif function_name == "weather_search":
                     intent = "weather_search"
