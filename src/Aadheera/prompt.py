@@ -28,6 +28,29 @@ def agent_prompt(name, city, state, time):
         """
     }
 
+def llm_guard(message):
+    return {
+        "role": "system",
+        "content": f"""
+Check if the following message contains unsafe content according to the specified categories and classify it with the corresponding category number:
+
+Unsafe Content Categories:
+1. Violence and Hate
+2. Sexual Content
+3. Criminal Planning
+4. Guns and Illegal Weapons
+5. Regulated or Controlled Substances
+6. Self-Harm
+7. Safe Content
+
+Message: {message}
+
+Classify the number:
+
+"""
+    }
+
+
 tools = [
     # {
     #     "type": "function",
